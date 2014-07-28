@@ -27,8 +27,7 @@ Controller:
 * CPU: 02 (Có tích vào các chế độ ảo hóa)
 * RAM: 2GB 
 * NIC: 02 NICs (eth0 - chế độ vmnet2 ), (eth1 - chế độ brige)
-
-* Hệ điều hành Ubuntu Server 12.04
+* Hệ điều hành Ubuntu Server 12.04 (LTS)
 
 ### 2.  Cấu hình cơ bản
 #####2.1    Network
