@@ -69,4 +69,4 @@ Lưu thay đổi và khởi động lại dịch vụ NTP
 
 $ openssl rand -hex 10
 
-!["image"](http://prntscr.com/472vp4 "Password")
+!["image"](http://prntscr.com/472vp4)
