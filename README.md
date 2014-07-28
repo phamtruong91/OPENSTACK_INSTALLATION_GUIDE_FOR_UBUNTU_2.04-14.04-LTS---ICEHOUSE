@@ -441,7 +441,8 @@ Kiểm tra file ảnh CirrOS vừa upload
 | acafc7c0-40aa-4026-9673-b879898e1fc2 | cirros-0.3.2-x86_64 | qcow2       | bare             | 13167616 | active |
 +--------------------------------------+---------------------+-------------+------------------+----------+--------+
 ```
-###5.1 Cài đặt dịch vụ Compute ở Controller node
+###5. Compute Service-Nova
+####5.1 Cài đặt dịch vụ Compute ở Controller node
 
 Cài đặt các gói của dịch vụ Compute
 ```
