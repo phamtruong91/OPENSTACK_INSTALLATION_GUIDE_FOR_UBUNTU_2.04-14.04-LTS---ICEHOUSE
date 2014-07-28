@@ -441,3 +441,105 @@ Kiểm tra file ảnh CirrOS vừa upload
 | acafc7c0-40aa-4026-9673-b879898e1fc2 | cirros-0.3.2-x86_64 | qcow2       | bare             | 13167616 | active |
 +--------------------------------------+---------------------+-------------+------------------+----------+--------+
 ```
+###5.1 Cài đặt dịch vụ Compute ở Controller node
+
+Cài đặt các gói của dịch vụ Compute
+```
+#apt-get install nova-api nova-cert nova-conductor nova-consoleauth \
+  nova-novncproxy nova-scheduler python-novaclient
+```
+Cấu hình kết nối database trong file /etc/nova/nova.conf
+Thêm phần [database] vào cuối file:
+```
+[database]
+connection = mysql://nova:NOVA_DBPASS@controller/nova
+```
+Cấu hình RabbitMQ trong file /etc/nova/nova.conf
+```
+[DEFAULT]
+...
+rpc_backend = rabbit
+rabbit_host = controller
+rabbit_password = RABBIT_PASS
+```
+Cấu hình vnc trong file /etc/nova/nova.conf
+```
+[DEFAULT]
+....
+my_ip = 10.10.10.100
+vncserver_listen = 10.10.10.100
+vncserver_proxyclient_address = 10.10.10.100
+```
+Xóa SQLite database mặc định của Ubuntu tạo cho nova
+```
+#rm /var/lib/nova/nova.sqlite
+```
+Tạo database cho nova trong MySQL
+```
+#mysql -u root -p
+```
+<Nhập mật khẩu root của MySQl>
+```
+mysql> CREATE DATABASE nova;
+mysql> GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'localhost' \
+IDENTIFIED BY 'NOVA_DBPASS';
+mysql> GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%' \
+IDENTIFIED BY 'NOVA_DBPASS';
+```
+Tạo database tables cho nova
+```
+#su -s /bin/sh -c "nova-manage db sync" nova
+```
+Tạo một nova user trong keystone để dịch vụ Compute có thể chứng thực với dịch vụ Identity. Sử dụng service tenant và admin role
+```
+#keystone user-create --name=nova --pass=NOVA_PASS --email=nova@example.com
+#keystone user-role-add --user=nova --tenant=service --role=admin
+```
+Cấu hình Compute sử dụng các chứng chỉ của dịch vụ Identity. Cấu hình file /etc/nova/nova.conf
+```
+[DEFAULT]
+....
+auth_strategy = keystone
+```
+Thêm phần [keystone_authtoken] vào cuối file
+```
+[keystone_authtoken]
+...
+auth_uri = http://controller:5000
+auth_host = controller
+auth_port = 35357
+auth_protocol = http
+admin_tenant_name = service
+admin_user = nova
+admin_password = NOVA_PASS
+```
+
+Đăng ký và tạo endpoint cho dịch vụ Compute
+```
+#keystone service-create --name=nova --type=compute \
+  --description="OpenStack Compute"
+#keystone endpoint-create \
+  --service-id=$(keystone service-list | awk '/ compute / {print $2}') \
+  --publicurl=http://controller:8774/v2/%\(tenant_id\)s \
+  --internalurl=http://controller:8774/v2/%\(tenant_id\)s \
+  --adminurl=http://controller:8774/v2/%\(tenant_id\)s
+```
+
+Khởi động lại dịch vụ Compute
+```
+#service nova-api restart
+#service nova-cert restart
+#service nova-consoleauth restart
+#service nova-scheduler restart
+#service nova-conductor restart
+#service nova-novncproxy restart
+```
+Để xác minh cấu hình xem danh sách các image
+```
+$ nova image-list
++--------------------------------------+---------------------+--------+--------+
+| ID                                   | Name                | Status | Server |
++--------------------------------------+---------------------+--------+--------+
+| acafc7c0-40aa-4026-9673-b879898e1fc2 | cirros-0.3.2-x86_64 | ACTIVE |        |
++--------------------------------------+---------------------+--------+--------+
+```
