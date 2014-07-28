@@ -66,7 +66,7 @@ Lưu thay đổi và khởi động lại dịch vụ NTP
 #service ntp restart
 ```
 * Passsword
-
+```
 $ openssl rand -hex 10
-
-!["image"](http://prntscr.com/472w9m)
+```
+![image](http://prntscr.com/472w9m)
