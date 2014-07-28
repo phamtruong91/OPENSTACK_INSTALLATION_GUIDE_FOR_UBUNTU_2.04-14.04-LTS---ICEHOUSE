@@ -316,3 +316,128 @@ $ keystone user-role-list --user admin --tenant admin
 | 5d3b60b66f1f438b80eaae41a77b5951 |  admin   | afea5bde3be9413dbd60e479fddf9228 | e519b772cb43474582fa303da62559e5 |
 +----------------------------------+----------+----------------------------------+----------------------------------+
 ```
+###4. Image Service-Glance
+
+####4.1 Cài đặt dịch vụ glance
+
+Cài đặt dịch vụ Image trên Controller node
+```
+#apt-get install glance python-glanceclient
+```
+
+Sửa cấu hình kết nối database ở các file /etc/glance/glance-api.conf và /etc/glance/glance-registry.conf
+```
+...
+[database]
+connection = mysql://glance:GLANCE_DBPASS@controller/glance
+```
+Mặc định, Ubuntu tạo một SQLite database cho glance. Xóa glance.sqlite file
+```
+#rm /var/lib/glance/glance.sqlite
+```
+Tạo database trong MySQL cho glance
+```
+#mysql -u root -p
+```
+<Nhập mật khẩu root của MySQL>
+```
+mysql> CREATE DATABASE glance;
+mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' \
+IDENTIFIED BY 'GLANCE_DBPASS';
+mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' \
+IDENTIFIED BY 'GLANCE_DBPASS';
+```
+
+Tạo các database tables cho dịch vụ Image
+```
+#su -s /bin/sh -c "glance-manage db_sync" glance
+```
+Tạo một glance user trong keystone để dịch vụ Image có thể chứng thực với dịch vụ Identity. Sử dụng service tenant và admin role
+```
+#keystone user-create --name=glance --pass=GLANCE_PASS \
+   --email=glance@example.com
+#keystone user-role-add --user=glance --tenant=service --role=admin
+```
+Cấu hình dịch vụ Image sử dụng dịch vụ Identity để chứng thực. Sửa các file /etc/glance/glance-api.conf và /etc/glance/glance-registry.conf
+- Sửa các dòng dưới phần [keystone_authtoken]:
+```
+[keystone_authtoken]
+auth_uri = http://controller:5000
+auth_host = controller
+auth_port = 35357
+auth_protocol = http
+admin_tenant_name = service
+admin_user = glance
+admin_password = GLANCE_PASS
+```
+
+- Sửa flavor dưới phần [paste_deploy]:
+```
+[paste_deploy]
+...
+flavor = keystone
+```
+Đăng ký và tạo endpoint cho dịch vụ Image
+```
+#keystone service-create --name=glance --type=image \
+  --description="OpenStack Image Service"
+#keystone endpoint-create \
+  --service-id=$(keystone service-list | awk '/ image / {print $2}') \
+  --publicurl=http://controller:9292 \
+  --internalurl=http://controller:9292 \
+  --adminurl=http://controller:9292
+```
+
+Khởi động lại dịch vụ glance để cập nhật cấu hình mới
+```
+#service glance-registry restart
+#service glance-api restart
+```
+####4.2 Upload file ảnh
+
+Tải CirrOS image
+```
+#mkdir images
+#cd images
+#wget http://cdn.download.cirros-cloud.net/0.3.2/cirros-0.3.2-x86_64-disk.img
+```
+Upload lên dịch vụ Image
+```
+#glance image-create --name=IMAGELABEL --disk-format=FILEFORMAT \
+  --container-format=CONTAINERFORMAT --is-public=ACCESSVALUE < IMAGEFILE
+```
+Ví dụ:
+```
+#source admin-openrc.sh
+#glance image-create --name "cirros-0.3.2-x86_64" --disk-format qcow2 \
+ --container-format bare --is-public True --progress < cirros-0.3.2-x86_64-disk.img
++------------------+--------------------------------------+
+| Property         | Value                                |
++------------------+--------------------------------------+
+| checksum         | 64d7c1cd2b6f60c92c14662941cb7913     |
+| container_format | bare                                 |
+| created_at       | 2014-04-08T18:59:18                  |
+| deleted          | False                                |
+| deleted_at       | None                                 |
+| disk_format      | qcow2                                |
+| id               | acafc7c0-40aa-4026-9673-b879898e1fc2 |
+| is_public        | True                                 |
+| min_disk         | 0                                    |
+| min_ram          | 0                                    |
+| name             | cirros-0.3.2-x86_64                  |
+| owner            | efa984b0a914450e9a47788ad330699d     |
+| protected        | False                                |
+| size             | 13167616                             |
+| status           | active                               |
+| updated_at       | 2014-01-08T18:59:18                  |
++------------------+--------------------------------------+
+```
+Kiểm tra file ảnh CirrOS vừa upload
+```
+#glance image-list
++--------------------------------------+---------------------+-------------+------------------+----------+--------+
+| ID                                   | Name                | Disk Format | Container Format | Size     | Status |
++--------------------------------------+---------------------+-------------+------------------+----------+--------+
+| acafc7c0-40aa-4026-9673-b879898e1fc2 | cirros-0.3.2-x86_64 | qcow2       | bare             | 13167616 | active |
++--------------------------------------+---------------------+-------------+------------------+----------+--------+
+```
