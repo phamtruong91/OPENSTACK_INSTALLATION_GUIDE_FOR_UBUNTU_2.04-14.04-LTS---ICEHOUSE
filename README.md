@@ -4,20 +4,37 @@ OPENSTACK
 
 Nguồn: http://docs.openstack.org/icehouse/install-guide/install/apt/content/index.html
 
-##Cài đặt OpenStack ICEHOUSE trên node Controller
+##Cài đặt OpenStack ICEHOUSE trên 3 node 
 
 * KeyStone
 * Glance
 * Nova
+* Neutron
+* Horizon
 
 ### 1. Chuẩn bị
 
-* IP 
+* IP Controller
 
 |       HOST     |          NICS          |
 | ---------------|------------------------| 
-|    Controller  | eth0: 10.10.10.100/24  |
-|                | eth1: 10.145.48.100/24 | 
+|    Controller  | eth0: 10.10.10.61/24   |
+|                | eth1: 172.16.69.61/24  | 
+
+* IP Compute
+
+|       HOST     |          NICS          |
+| ---------------|------------------------| 
+|    Compute     | eth0: 10.10.10.62/24   |
+|                | eth1: 172.16.69.62/24  |
+|                | eth2: 10.10.20.62/24   |
+
+
+|       HOST     |          NICS          |
+| ---------------|------------------------| 
+|    Network     | eth0: 10.10.10.63/24   |
+|                | eth1: 172.16.69.63/24  |
+|                | eth2: 10.10.20.63/24   |
 
 * Cấu hình máy
 
@@ -26,7 +43,23 @@ Controller:
 * HDD: 20 GB
 * CPU: 02 (Có tích vào các chế độ ảo hóa)
 * RAM: 2GB 
-* NIC: 02 NICs (eth0 - chế độ vmnet2 ), (eth1 - chế độ brige)
+* NIC: 02 NICs (eth0 - chế độ vmnet3 ), (eth1 - chế độ brige)
+* Hệ điều hành Ubuntu Server 12.04 (LTS)
+
+Compute:
+
+* HDD: 20 GB
+* CPU: 02 (Có tích vào các chế độ ảo hóa)
+* RAM: 2GB 
+* NIC: 02 NICs (eth0 - chế độ vmnet3 ), (eth1 - chế độ brige), (eth2 - chế độ vmnet4)
+* Hệ điều hành Ubuntu Server 12.04 (LTS)
+
+Network:
+
+* HDD: 20 GB 
+* CPU: 02 (Có tích vào các chế độ ảo hóa)
+* RAM: 512 MB 
+* NIC: 02 NICs (eth0 - chế độ vmnet3 ), (eth1 - chế độ brige), (eth2 - chế độ vmnet4)
 * Hệ điều hành Ubuntu Server 12.04 (LTS)
 
 ### 2.  Cấu hình cơ bản
