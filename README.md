@@ -127,9 +127,13 @@ Lưu thay đổi và khởi động lại dịch vụ MySQL
 ```
 
 Xóa anonymous user, test database, đặt mật khẩu root cho MySQL
+
+```
 #mysql_secure_installation
+```
 
 _Cài đặt trên 2 node còn lại_
+
 
 ```
 #apt-get install python-mysqldb
@@ -154,6 +158,7 @@ Update và Upgrade hệ điều hành
 *   Messaging server ( RabbitMQ)
 
 Cài đặt trên controller node
+
 ```
 #apt-get install rabbitmq-server
 ```
