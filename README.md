@@ -14,14 +14,12 @@ Nguồn: http://docs.openstack.org/icehouse/install-guide/install/apt/content/in
 
 ### 1. Chuẩn bị
 
-* IP Controller
 
 |       HOST     |          NICS          |
 | ---------------|------------------------| 
 |    Controller  | eth0: 10.10.10.61/24   |
 |                | eth1: 172.16.69.61/24  | 
 
-* IP Compute
 
 |       HOST     |          NICS          |
 | ---------------|------------------------| 
@@ -35,6 +33,8 @@ Nguồn: http://docs.openstack.org/icehouse/install-guide/install/apt/content/in
 |    Network     | eth0: 10.10.10.63/24   |
 |                | eth1: 172.16.69.63/24  |
 |                | eth2: 10.10.20.63/24   |
+
+!["image"](http://i.imgur.com/c02p9u8.png "topo")
 
 * Cấu hình máy
 
@@ -63,22 +63,24 @@ Network:
 * Hệ điều hành Ubuntu Server 12.04 (LTS)
 
 ### 2.  Cấu hình cơ bản
-#####2.1    Network
-* Đặt tên hostname: controller
-* Sửa file etc/hosts
+
+* Đặt tên hostname: 
+
+controller
+compute
+network
+
+* Cấu hình file etc/hosts tại 3 node
 
 ```
-# controller
-10.10.10.100       controller
-# network
-10.10.10.101       network
-# compute1
-10.10.10.102       compute1
+10.10.10.61       controller
+10.10.10.62       compute
+10.10.10.63       network
 ```
 
 * Network Time Protocol (NTP)
 
-Cài đặt ntp:
+Cài đặt ntp trên 3 node
 ```
 # apt-get install ntp
 ```
@@ -91,7 +93,7 @@ server 1.ubuntu.pool.ntp.org
 server 2.ubuntu.pool.ntp.org
 server 3.ubuntu.pool.ntp.org
 ```
-Sửa dòng server ntp.ubuntu.com thành server 10.10.10.100
+Sửa dòng server ntp.ubuntu.com thành server controller
 
 Lưu thay đổi và khởi động lại dịch vụ NTP
 ```
@@ -107,31 +109,51 @@ Các loại password
 
 !["image"](http://i.imgur.com/ezJtviV.png "Password")
 
-####2.2  Database
+*   Database
+
+_Cài đặt trên controller node_
+
+```
+#apt-get install python-mysqldb mysql-server
+```
+Sửa file /etc/mysql/my.cnf:
+```
+bind-address = 10.10.10.61
+```
+Lưu thay đổi và khởi động lại dịch vụ MySQL
+
+```
+#service mysql restart
+```
+
+Xóa anonymous user, test database, đặt mật khẩu root cho MySQL
+#mysql_secure_installation
+
+_Cài đặt trên 2 node còn lại_
+
+```
+#apt-get install python-mysqldb
+```
 
 *   OpenStack packages
 
+Cài đặt trên 3 node
+
 Cài đặt  Ubuntu Cloud Archive cho Icehouse
 ```
-# apt-get install python-software-properties
-# add-apt-repository cloud-archive:icehouse
+#apt-get update
+#apt-get install python-software-properties
+#apt-get update
+#add-apt-repository cloud-archive:icehouse
 ```
 Update và Upgrade hệ điều hành
 ```
 # apt-get update
 # apt-get dist-upgrade
 ```
-Cài đặt nhân
-```
-# apt-get install linux-image-generic-lts-saucy linux-headers-generic-lts-saucy
-```
-Khởi động lại hệ điều hành
-```
-#reboot
-```
 *   Messaging server ( RabbitMQ)
 
-Cài đặt
+Cài đặt trên controller node
 ```
 #apt-get install rabbitmq-server
 ```
