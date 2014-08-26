@@ -93,7 +93,7 @@ server 1.ubuntu.pool.ntp.org
 server 2.ubuntu.pool.ntp.org
 server 3.ubuntu.pool.ntp.org
 ```
-Sửa dòng server ntp.ubuntu.com thành server controller
+Sửa dòng server ntp.ubuntu.com thành: server controller (hoặc ip của controller)
 
 Lưu thay đổi và khởi động lại dịch vụ NTP
 ```
@@ -129,6 +129,7 @@ Lưu thay đổi và khởi động lại dịch vụ MySQL
 Xóa anonymous user, test database, đặt mật khẩu root cho MySQL
 
 ```
+#mysql_install_db
 #mysql_secure_installation
 ```
 
@@ -203,6 +204,7 @@ Tạo database trong MySQL cho keystone
 mysql> CREATE DATABASE keystone;
 mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'KEYSTONE_DBPASS';
 mysql> GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'KEYSTONE_DBPASS';
+mysql> FLUSH PRIVILEGES;
 mysql> exit
 ```
 
@@ -233,7 +235,7 @@ Khởi động lại dịch vụ keystone
 ```
 #service keystone restart
 ```
-Chạy lệnh sau để thanh lọc token hết hạn mỗi giờ và ghi đầu ra vào / var / log / keystone / keystone-tokenflush.log
+Chạy lệnh sau để thanh lọc token hết hạn mỗi giờ và ghi đầu ra vào /var/log/keystone/keystone-tokenflush.log
 
 ```
 # (crontab -l -u keystone 2>&1 | grep -q token_flush) || \
@@ -346,6 +348,9 @@ $ keystone --os-username=admin --os-password=ADMIN_PASS \
   token-get
 ```
 Tạo file admin-openrc.sh chứa các biến môi trường nhằm chứng thực cho việc sử dụng CLI sau này
+
+vi admin-openrc.sh
+
 ```
 export OS_USERNAME=admin
 export OS_PASSWORD=ADMIN_PASS
@@ -391,6 +396,16 @@ Sửa cấu hình kết nối database ở các file /etc/glance/glance-api.conf
 [database]
 connection = mysql://glance:GLANCE_DBPASS@controller/glance
 ```
+Sửa file /etc/glance/glance-api.conf
+
+```
+[DEFAULT]
+...
+rpc_backend = rabbit
+rabbit_host = controller
+rabbit_password = RABBIT_PASS
+```
+
 Mặc định, Ubuntu tạo một SQLite database cho glance. Xóa glance.sqlite file
 ```
 #rm /var/lib/glance/glance.sqlite
@@ -406,6 +421,7 @@ mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' \
 IDENTIFIED BY 'GLANCE_DBPASS';
 mysql> GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' \
 IDENTIFIED BY 'GLANCE_DBPASS';
+mysql> FLUSH RTIVILEGES
 ```
 
 Tạo các database tables cho dịch vụ Image
@@ -419,6 +435,7 @@ Tạo một glance user trong keystone để dịch vụ Image có thể chứng
 #keystone user-role-add --user=glance --tenant=service --role=admin
 ```
 Cấu hình dịch vụ Image sử dụng dịch vụ Identity để chứng thực. Sửa các file /etc/glance/glance-api.conf và /etc/glance/glance-registry.conf
+
 - Sửa các dòng dưới phần [keystone_authtoken]:
 ```
 [keystone_authtoken]
@@ -527,9 +544,9 @@ Cấu hình vnc trong file /etc/nova/nova.conf
 ```
 [DEFAULT]
 ....
-my_ip = 10.10.10.100
-vncserver_listen = 10.10.10.100
-vncserver_proxyclient_address = 10.10.10.100
+my_ip = 10.10.10.61
+vncserver_listen = 10.10.10.61
+vncserver_proxyclient_address = 10.10.10.61
 ```
 Xóa SQLite database mặc định của Ubuntu tạo cho nova
 ```
@@ -546,6 +563,7 @@ mysql> GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'localhost' \
 IDENTIFIED BY 'NOVA_DBPASS';
 mysql> GRANT ALL PRIVILEGES ON nova.* TO 'nova'@'%' \
 IDENTIFIED BY 'NOVA_DBPASS';
+mysql> FLUSH PRIVILEGES;
 ```
 Tạo database tables cho nova
 ```
@@ -604,3 +622,27 @@ $ nova image-list
 | acafc7c0-40aa-4026-9673-b879898e1fc2 | cirros-0.3.2-x86_64 | ACTIVE |        |
 +--------------------------------------+---------------------+--------+--------+
 ```
+
+####5.1 Cài đặt dịch vụ Compute ở Compute node
+
+```
+#apt-get install nova-compute-kvm python-guestfs
+
+# dpkg-statoverride --update --add root root 0644 /boot/vmlinuz-$(uname -
+r)
+
+```
+Tạo file : /etc/kernel/postinst.d/statoverride
+```
+#!/bin/sh
+version="$1"
+# passing the kernel version is required
+[ -z "${version}" ] && exit 0
+dpkg-statoverride --update --add root root 0644 /boot/vmlinuz-${version}
+
+```
+```
+# chmod +x /etc/kernel/postinst.d/statoverride
+```
+
+
